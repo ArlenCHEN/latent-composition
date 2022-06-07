@@ -67,6 +67,8 @@ class Compositer(object):
         self.nets_RGBM = nets_RGBM
         self.nets_RGB = nets_RGB
         self.nets_VAE = nets_VAE
+        print('In initialization of Compositer, total_samples: ', total_samples)
+        print('In initialization of Compositer, seed: ', seed)
         self.zs = nets_RGBM.sample_zs(total_samples, seed)
         self.total_samples = total_samples
         self.outsize = nets_RGBM.setting['outdim']
@@ -90,19 +92,28 @@ class Compositer(object):
             assert(imgs[0].shape[-1] == self.outsize)
             images = [(l, i) for l, i in zip(self.ordered_labels, imgs)]
 
+        print('in Compositer, outsize: ', self.outsize)
+
         composite = (torch.Tensor([0, 0, 0]).view(3, 1, 1)
                      .repeat(1, self.outsize, self.outsize)[None]
                      .float().cuda())
         mask_composite = torch.zeros_like(composite)[:, [0], :, :] # 1 channel
 
+        print('In composition, composite shape: ', composite.shape)
+        print('In composition, mask_composite shape: ', mask_composite.shape)
+
         composite_image_output = []
         composite_mask_output = []
         segmentations = []
+        # Loop over images, which is a list of sampled images
         for i, (label, sample) in enumerate(images):
             with torch.no_grad():
                 if indices is not None:
+                    print('In composition, values of sample: ', sample)
+                    # Here the sampe is just the index of the image
                     z = self.zs[sample][None]
                     im = self.nets_RGBM.zs2image(z)
+                    print('In composition, im: ', im)
                 else:
                     im = sample[None].cuda()
 
@@ -136,6 +147,9 @@ class Compositer(object):
             composite_filled = im * mask + composite_filled * (1-mask)
 
         with torch.no_grad():
+            print('In compositions, composite shape: ', composite.shape)
+            print('In compositions, mask_composite shape: ', mask_composite.shape)
+            
             regenerated_RGBM = self.nets_RGBM.invert(composite, mask_composite)
             if self.nets_RGB is not None:
                 regenerated_RGB = self.nets_RGB.invert(composite, mask=None)
@@ -285,6 +299,7 @@ def poisson_blend_layers(composite_parts_image, composite_parts_mask):
     return Image.fromarray(cv2.cvtColor(blended_result, cv2.COLOR_BGR2RGB))
 
 def get_compositer(domain):
+    print('Getting compositer.')
     if 'ffhq' in domain or 'celebahq' in domain:
         return FaceCompositer
     if 'church' in domain:

@@ -119,11 +119,24 @@ class StyleganNets(Nets):
         self.use_VAE = use_VAE
 
     def sample_zs(self, n=100, seed=1, device=None):
+        print('In networks, StyleganNets.sample_zs')
+        print('In sample_zs, n: ', n)
+        print('in sample_zs, seed: ', seed)
+
         depth = self.setting['nz']
+
+        print('In sample_zs, depth: ', depth)
+
         rng = np.random.RandomState(seed)
+        print('In sample_zs, rng: ', rng)
+
         result = torch.from_numpy(
                 rng.standard_normal(n * depth)
                 .reshape(n, depth)).float()
+
+        print('In sample_zs, result shape: ', result.shape)
+        print('In sample_zs, result: ', result)
+
         if device is None:
             result = result.to(self.device)
         else:
